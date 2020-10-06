@@ -297,8 +297,9 @@ def convert_ath_json(json_dir):  # dir contains json annotations and images
     write_data_data(dir + 'data.data', nc=1)
     print('Done. Output saved to %s' % Path(dir).absolute())
 
+import shutil
 
-def convert_coco_json(json_dir='../coco/annotations/'):
+def convert_coco_json(json_dir='../coco/annotations/', image_dir='../coco/images/', extension='.png'):
     dir = make_folders(path='out/')  # output directory
     jsons = glob.glob(json_dir + '*.json')
     coco80 = coco91_to_coco80_class()
@@ -307,11 +308,17 @@ def convert_coco_json(json_dir='../coco/annotations/'):
     for json_file in sorted(jsons):
         fn = 'out/labels/%s/' % Path(json_file).stem.replace('instances_', '')  # folder name
         os.mkdir(fn)
+        coco_image = 'out/images/%s/' % Path(json_file).stem.replace('instances_', '')
+        os.mkdir(coco_image)
         with open(json_file) as f:
             data = json.load(f)
 
         # Create image dict
         images = {'%g' % x['id']: x for x in data['images']}
+
+        # Write image files
+        for x in tqdm(data['images'], desc='Images %s' % json_file):
+            shutil.copy(image_dir + x['file_name'], coco_image + x['file_name'])
 
         # Write labels file
         for x in tqdm(data['annotations'], desc='Annotations %s' % json_file):
@@ -353,7 +360,7 @@ if __name__ == '__main__':
         convert_ath_json(json_dir='../../Downloads/athena/')  # images folder
 
     elif source is 'coco':
-        convert_coco_json()
+        convert_coco_json('../HRSID_png/annotations/', '../HRSID_png/images/')
 
     # zip results
     # os.system('zip -r ../coco.zip ../coco')
