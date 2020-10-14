@@ -3,6 +3,7 @@ import json
 import cv2
 import pandas as pd
 from PIL import Image
+import argparse
 
 from utils import *
 
@@ -297,28 +298,42 @@ def convert_ath_json(json_dir):  # dir contains json annotations and images
     write_data_data(dir + 'data.data', nc=1)
     print('Done. Output saved to %s' % Path(dir).absolute())
 
+import shutil
+import random 
 
-def convert_coco_json(json_dir='../coco/annotations/'):
+def convert_coco_json(json_dir='../coco/annotations/', image_dir='../coco/images/', subset=0, extension='.png'):
     dir = make_folders(path='out/')  # output directory
     jsons = glob.glob(json_dir + '*.json')
     coco80 = coco91_to_coco80_class()
 
     # Import json
     for json_file in sorted(jsons):
-        fn = 'out/labels/%s/' % Path(json_file).stem.replace('instances_', '')  # folder name
+        split_name = Path(json_file).stem.replace('instances_', '')
+        fn = 'out/labels/%s/' % split_name  # folder name
         os.mkdir(fn)
+        coco_image = 'out/images/%s/' % split_name
+        os.mkdir(coco_image)
         with open(json_file) as f:
             data = json.load(f)
 
         # Create image dict
-        images = {'%g' % x['id']: x for x in data['images']}
+        images = data['images'].copy()
+        n_select = min(len(images), subset) if subset > 0 and 'train' in split_name else len(images)
+        random.shuffle(images)
+        images = images[:n_select]
+        image_dict = {'%g' % x['id']: x for x in images}
+
+        # Write image files
+        for x in tqdm(images, desc='Images %s' % json_file):
+            shutil.copy(image_dir + x['file_name'], coco_image + x['file_name'])
+
 
         # Write labels file
         for x in tqdm(data['annotations'], desc='Annotations %s' % json_file):
-            if x['iscrowd']:
+            if x['iscrowd'] or '%g' % x['image_id'] not in image_dict:
                 continue
 
-            img = images['%g' % x['image_id']]
+            img = image_dict['%g' % x['image_id']]
             h, w, f = img['height'], img['width'], img['file_name']
 
             # The Labelbox bounding box format is [top left x, top left y, width, height]
@@ -333,7 +348,12 @@ def convert_coco_json(json_dir='../coco/annotations/'):
 
 
 if __name__ == '__main__':
-    source = 'coco'
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source', type=str, default='coco', help='source format. Options: labelbox, infolks, vott, ath, coco')
+    parser.add_argument('--subset', type=int, default=0, help='number of images to subset in train (only for coco format)')
+    opt = parser.parse_args()
+    source = opt.source
 
     if source is 'labelbox':  # Labelbox https://labelbox.com/
         convert_labelbox_json(name='supermarket2',
@@ -353,7 +373,7 @@ if __name__ == '__main__':
         convert_ath_json(json_dir='../../Downloads/athena/')  # images folder
 
     elif source is 'coco':
-        convert_coco_json()
+        convert_coco_json('../HRSID_png/annotations/', '../HRSID_png/images/', subset=opt.subset)
 
     # zip results
     # os.system('zip -r ../coco.zip ../coco')
