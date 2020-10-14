@@ -299,7 +299,7 @@ def convert_ath_json(json_dir):  # dir contains json annotations and images
     print('Done. Output saved to %s' % Path(dir).absolute())
 
 import shutil
-import random 
+import random
 
 def convert_coco_json(json_dir='../coco/annotations/', image_dir='../coco/images/', subset=0, extension='.png'):
     dir = make_folders(path='out/')  # output directory
@@ -327,6 +327,10 @@ def convert_coco_json(json_dir='../coco/annotations/', image_dir='../coco/images
         for x in tqdm(images, desc='Images %s' % json_file):
             shutil.copy(image_dir + x['file_name'], coco_image + x['file_name'])
 
+
+        # Write image files
+        for x in tqdm(data['images'], desc='Images %s' % json_file):
+            shutil.copy(image_dir + x['file_name'], coco_image + x['file_name'])
 
         # Write labels file
         for x in tqdm(data['annotations'], desc='Annotations %s' % json_file):
