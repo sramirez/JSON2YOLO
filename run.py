@@ -327,11 +327,6 @@ def convert_coco_json(json_dir='../coco/annotations/', image_dir='../coco/images
         for x in tqdm(images, desc='Images %s' % json_file):
             shutil.copy(image_dir + x['file_name'], coco_image + x['file_name'])
 
-
-        # Write image files
-        for x in tqdm(data['images'], desc='Images %s' % json_file):
-            shutil.copy(image_dir + x['file_name'], coco_image + x['file_name'])
-
         # Write labels file
         for x in tqdm(data['annotations'], desc='Annotations %s' % json_file):
             if x['iscrowd'] or '%g' % x['image_id'] not in image_dict:
